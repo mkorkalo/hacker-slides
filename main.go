@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"flag"
 
 	log "github.com/Sirupsen/logrus"
 	haikunator "github.com/atrox/haikunatorgo"
@@ -37,8 +38,8 @@ func NewApp() *gin.Engine {
 	r.Use(auth.BasicAuth())
 
 	r.LoadHTMLGlob("templates/*.tmpl")
-	r.Static("/static", "./static")
-	r.Static("/images", "./slides/images")
+	r.Static("static", "./static")
+	r.Static("images", "./slides/images")
 
 	r.GET("/", func(c *gin.Context) {
 		isNew := c.Query("new")
@@ -65,7 +66,7 @@ func NewApp() *gin.Engine {
 		session.Set("name", path)
 		session.Save()
 
-		c.Writer.Header().Set("Location", fmt.Sprintf("/stash/edit/%s", name))
+		c.Writer.Header().Set("Location", fmt.Sprintf("stash/edit/%s", name))
 		c.HTML(302, "index.tmpl", gin.H{
 			"pubTo": path,
 		})
@@ -90,7 +91,7 @@ func NewApp() *gin.Engine {
 		return path, nil
 	}
 
-	r.GET("/slides.md", func(c *gin.Context) {
+	r.GET("slides.md", func(c *gin.Context) {
 		path, err := mustHaveSession(c)
 		if err != nil {
 			return
@@ -122,7 +123,7 @@ func NewApp() *gin.Engine {
 		c.String(200, slide)
 	})
 
-	r.PUT("/slides.md", func(c *gin.Context) {
+	r.PUT("slides.md", func(c *gin.Context) {
 		path, err := mustHaveSession(c)
 		if err != nil {
 			return
@@ -137,7 +138,7 @@ func NewApp() *gin.Engine {
 		c.String(200, "")
 	})
 
-	r.GET("/stash", func(c *gin.Context) {
+	r.GET("stash", func(c *gin.Context) {
 		files, err := ioutil.ReadDir("slides")
 		if err != nil {
 			log.Fatal(err)
@@ -159,7 +160,7 @@ func NewApp() *gin.Engine {
 		})
 	})
 
-	r.GET("/stash/edit/:name", func(c *gin.Context) {
+	r.GET("stash/edit/:name", func(c *gin.Context) {
 
 		name := c.Param("name")
 		log.WithFields(log.Fields{
@@ -179,7 +180,7 @@ func NewApp() *gin.Engine {
 		})
 	})
 
-	r.GET("/published/slides/:name", func(c *gin.Context) {
+	r.GET("published/slides/:name", func(c *gin.Context) {
 
 		name := c.Param("name")
 		log.WithFields(log.Fields{
@@ -202,17 +203,14 @@ func NewApp() *gin.Engine {
 
 }
 
+var port int
+var ip string
 func main() {
+	flag.IntVar(&port, "port", 8080, "TCP port to listen on")
+	flag.StringVar(&ip, "ip", "0.0.0.0", "IP to bind to")
+	flag.Parse()
 	r := NewApp()
-	port := "8080"
-	if len(os.Args) > 1 {
-		port = os.Args[1]
-	} else {
-		envPort := os.Getenv("PORT")
-		if len(envPort) > 0 {
-			port = envPort
-		}
-	}
-	log.Info("Started http://0.0.0.0:8080")
-	r.Run(fmt.Sprintf(":%s", port))
+
+	log.Infof("Listening on http://%s:%d", ip, port)
+	r.Run(fmt.Sprintf("%s:%d", ip, port))
 }
