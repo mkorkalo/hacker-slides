@@ -1,5 +1,5 @@
 GIT_SUMMARY := $(shell git describe --tags --dirty --always)
-REPO=msoedov/hacker-slides
+REPO=keitsi/hacker-slides
 DOCKER_IMAGE := $(REPO):$(GIT_SUMMARY)
 default: repo
 
